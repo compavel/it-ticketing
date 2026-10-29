@@ -76,9 +76,10 @@ Semua relasi wajib pakai foreign key constraint + index di kolom yang sering dif
 - **Phase 3 (opsional, terakhir):** demo live via Railway atau Laravel Cloud. JANGAN pakai VPS manual — hindari ribet.
 
 ## Status
-- **Phase saat ini:** Setup selesai — siap mulai bikin fitur MVP
-- **Done:** PHP 8.4.27 (side-by-side di `C:\php84`), Laravel 13.11 + framework v13.39.0, Laravel Boost v2.10.4, Laravel Breeze v2.4.2 (blade stack), Tailwind ke-build, database MySQL `it_ticketing` (port **3307**, bukan 3306) ke-migrate, 25 test bawaan pass, GitHub repo: https://github.com/compavel/it-ticketing (branch `main`, remote `origin`)
-- **Next step:** Mulai fitur 1: migration `role` di users + tabel `categories`, `tickets`, `comments` sesuai database design
+- **Phase saat ini:** Fitur 1 selesai (database foundation) — siap Fitur 2
+- **Done:** PHP 8.4.27 (`C:\php84`), Laravel 13.11 + Boost + Breeze, database MySQL `it_ticketing` (port **3307**), GitHub: https://github.com/compavel/it-ticketing
+  - **Fitur 1 — database schema:** Enums (`UserRole`, `TicketStatus`, `TicketPriority` di root namespace `App\`), tabel `categories`/`tickets`/`comments` + kolom `role` di users, models + relationships + `#[Fillable]` attribute (Laravel 13 style), factories, `CategorySeeder` (7 kategori). 25 test pass.
+- **Next step:** Fitur 2 — ticket CRUD + authorization: `TicketPolicy`, `TicketController` (index/create/store/show), Form Request validation, views (list + filter, form buat ticket, detail), routes, feature tests. Minta approval plan sebelum implement.
 
 ## Catatan untuk AI
 - Selalu tanya kalau requirement ambigu, jangan asumsi
