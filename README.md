@@ -21,6 +21,8 @@ An internal helpdesk application for reporting and tracking IT disturbances — 
 - **Search & filters** — by keyword (title/description), status, category, and priority, combined with pagination
 - **Dashboard** — status counts (single `GROUP BY` query) and an unassigned-ticket queue
 - **Ticket assignment** — technicians **claim** unassigned tickets; admins **assign/reassign** to any staff member
+- **Activity/audit log** — every meaningful change (created, status_changed, assigned, claimed) recorded with actor and timestamps, shown as a timeline on the ticket page
+- **Rate limiting** — login (5/min) and registration (10/min) throttled to slow down brute-force attempts
 - **Demo seed data** — ready-to-explore accounts and realistic sample tickets
 
 ### Security
@@ -29,6 +31,8 @@ An internal helpdesk application for reporting and tracking IT disturbances — 
 - Internal comments filtered server-side — requesters never see them, not even the comment count
 - Mass-assignment protection: sensitive fields (`status`, `assigned_to`, `user_id`) are intentionally **not** fillable and are set explicitly
 - CSRF protection on all forms, parameterized queries via Eloquent, `enum`-validated status values
+- Brute-force protection via `throttle` middleware on login & registration routes
+- Race-condition-safe claim: atomic conditional `UPDATE ... WHERE assigned_to IS NULL` — only one technician wins, the loser gets a clear message
 - No hardcoded credentials — everything via `.env`
 
 ## Screenshots
@@ -41,8 +45,8 @@ An internal helpdesk application for reporting and tracking IT disturbances — 
 | **Ticket list** — search & filters | **Ticket detail (staff)** — status form, assignment, internal notes |
 | ![Create ticket](docs/screenshots/05-ticket-create.jpg) | ![Ticket detail (user)](docs/screenshots/06-ticket-detail-user.jpg) |
 | **Create ticket** | **Ticket detail (user)** — internal notes hidden |
-| ![Category management](docs/screenshots/07-categories-admin.jpg) | |
-| **Category management (admin)** | |
+| ![Category management](docs/screenshots/07-categories-admin.jpg) | ![Activity log](docs/screenshots/08-activity-log.jpg) |
+| **Category management (admin)** | **Activity log** — audit trail on ticket detail |
 
 ## Roles
 
@@ -132,7 +136,7 @@ php artisan test              # full suite
 php artisan test --compact    # compact output
 ```
 
-**82 tests, 217 assertions** — covering authentication, CRUD, authorization boundaries for all three roles, validation, status workflow rules (including closed-is-final), comment visibility (internal notes hidden from requesters, counts not leaked), assignment/claim rules, category management (admin-only, unique names, delete guarded against ticket usage), and dashboard scoping.
+**92 tests, 248 assertions** — covering authentication, CRUD, authorization boundaries for all three roles, validation, status workflow rules (including closed-is-final), comment visibility (internal notes hidden from requesters, counts not leaked), assignment/claim rules (including the race-condition contract), activity/audit logging, rate limiting, category management (admin-only, unique names, delete guarded against ticket usage), and dashboard scoping.
 
 Tests run against in-memory SQLite, so no database server is needed.
 
@@ -157,9 +161,10 @@ app/
 │   ├── UpdateStatusRequest.php      # enum-validated status transitions
 │   ├── StoreCommentRequest.php      # comment rules; internal flag forced for users
 │   └── AssignTicketRequest.php      # target must be technician/admin
-├── Models/                          # User, Ticket, Category, Comment
+├── Models/                          # User, Ticket, Category, Comment, TicketActivity
 ├── Policies/
-│   └── TicketPolicy.php             # ALL authorization rules live here
+│   ├── TicketPolicy.php             # ALL ticket authorization rules
+│   └── CategoryPolicy.php           # category: view all, manage = admin only
 └── Enums (App\)                     # UserRole, TicketStatus, TicketPriority
 ```
 
@@ -170,6 +175,8 @@ app/
 3. **Internal comments filtered server-side.** `TicketController::show()` removes internal notes before rendering when the viewer lacks permission — so both the list and the count stay correct.
 4. **Deliberate mass-assignment boundaries.** `status`, `assigned_to`, and `user_id` are not fillable; they are set explicitly or via the owning relation. This prevents privilege escalation even if a future developer passes untrusted input to `update()`.
 5. **Assign vs. claim are separate endpoints** with separate rules: claim = staff takes an unassigned ticket; assign = admin chooses the owner.
+6. **Claim uses an atomic conditional UPDATE** (`WHERE assigned_to IS NULL`) instead of read-then-write — two technicians clicking *Claim* simultaneously can never both win; the loser gets a friendly error instead of silently overwriting.
+7. **Audit log written at the controller layer** (`ticket_activities`): one row per meaningful change with actor, old/new value, and timestamp — no model event listeners to hide the side effect. Status changes to the same value are not logged (no noise).
 
 ## Database Design
 
@@ -195,7 +202,6 @@ Currently running locally in development. Planned: public GitHub repo (Phase 2) 
 - Email/realtime notifications on status changes and assignments
 - File attachments on tickets
 - SLA timers and escalation
-- Ticket activity/audit log
 - Dashboard charts for trends over time
 
 ## Author

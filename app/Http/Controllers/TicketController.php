@@ -83,6 +83,11 @@ class TicketController extends Controller
         $ticket->status = TicketStatus::Open;
         $ticket->save();
 
+        $request->user()->activities()->create([
+            'ticket_id' => $ticket->id,
+            'action' => 'created',
+        ]);
+
         return redirect()
             ->route('tickets.show', $ticket)
             ->with('success', 'Ticket berhasil dibuat.');
@@ -95,7 +100,7 @@ class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->load(['category', 'requester', 'assignee', 'comments.author']);
+        $ticket->load(['category', 'requester', 'assignee', 'comments.author', 'activities.actor']);
 
         // Komentar internal hanya untuk technician/admin. Di-filter di sini
         // (bukan di view) supaya count & tampilan konsisten.
@@ -124,10 +129,24 @@ class TicketController extends Controller
     {
         Gate::authorize('update', $ticket);
 
+        $oldStatus = $ticket->status; // enum via cast
+
         // status sengaja TIDAK masuk $fillable (field sensitif): di-set
         // eksplisit di sini, bukan lewat mass assignment.
         $ticket->status = $request->validated('status');
         $ticket->save();
+
+        // Baca ulang lewat cast supaya selalu enum (validated() bisa string).
+        $newStatus = $ticket->status;
+
+        if ($oldStatus !== $newStatus) {
+            $request->user()->activities()->create([
+                'ticket_id' => $ticket->id,
+                'action' => 'status_changed',
+                'old_value' => $oldStatus->value,
+                'new_value' => $newStatus->value,
+            ]);
+        }
 
         return redirect()
             ->route('tickets.show', $ticket)
@@ -143,8 +162,18 @@ class TicketController extends Controller
      */
     public function assign(AssignTicketRequest $request, Ticket $ticket)
     {
-        $ticket->assigned_to = $request->validated('technician_id');
+        $newAssignee = User::findOrFail($request->validated('technician_id'));
+        $oldAssignee = $ticket->assignee;
+
+        $ticket->assigned_to = $newAssignee->id;
         $ticket->save();
+
+        $request->user()->activities()->create([
+            'ticket_id' => $ticket->id,
+            'action' => 'assigned',
+            'old_value' => $oldAssignee?->name,
+            'new_value' => $newAssignee->name,
+        ]);
 
         return redirect()
             ->route('tickets.show', $ticket)
@@ -154,15 +183,31 @@ class TicketController extends Controller
     /**
      * Claim the unassigned ticket for the current technician.
      *
-     * Authorization di TicketPolicy::claim() (hanya ticket yang belum
-     * ditugaskan). `assigned_to` di-set eksplisit dari session.
+     * Authorization di TicketPolicy::claim(). Penulisan pakai conditional
+     * UPDATE atomik (`whereNull('assigned_to')`) — menutup race condition:
+     * kalau dua teknisi klik "Ambil" hampir bersamaan, hanya UPDATE yang
+     * berhasil mengubah 1 baris yang menang. Yang kalah dapat pesan jelas.
      */
     public function claim(Request $request, Ticket $ticket)
     {
         Gate::authorize('claim', $ticket);
 
-        $ticket->assigned_to = $request->user()->id;
-        $ticket->save();
+        $claimed = Ticket::whereKey($ticket->getKey())
+            ->whereNull('assigned_to')
+            ->update(['assigned_to' => $request->user()->id]);
+
+        if ($claimed === 0) {
+            // Baris tidak berubah: teknisi lain menang telak lebih dulu.
+            return redirect()
+                ->route('tickets.show', $ticket)
+                ->with('error', 'Ticket ini baru saja diambil teknisi lain.');
+        }
+
+        $request->user()->activities()->create([
+            'ticket_id' => $ticket->id,
+            'action' => 'claimed',
+            'new_value' => $request->user()->name,
+        ]);
 
         return redirect()
             ->route('tickets.show', $ticket)

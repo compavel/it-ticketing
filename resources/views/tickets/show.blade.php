@@ -20,6 +20,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="rounded-md bg-red-50 p-4">
+                    <p class="text-sm font-medium text-red-800">{{ session('error') }}</p>
+                </div>
+            @endif
+
             {{-- Detail ticket --}}
             <div class="bg-white shadow-sm sm:rounded-lg">
                 <div class="p-6">
@@ -206,6 +212,63 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            {{-- Riwayat Aktivitas (audit log) --}}
+            <div class="bg-white shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">
+                        {{ __('Riwayat Aktivitas') }}
+                        <span class="ml-1 font-normal text-gray-500">({{ $ticket->activities->count() }})</span>
+                    </h3>
+
+                    @if ($ticket->activities->isEmpty())
+                        <p class="text-sm text-gray-500">{{ __('Belum ada aktivitas tercatat.') }}</p>
+                    @else
+                        <ul role="list" class="space-y-3">
+                            @foreach ($ticket->activities as $activity)
+                                <li class="flex items-start justify-between gap-3 text-sm">
+                                    <div class="min-w-0">
+                                        <p class="text-gray-800">
+                                            <span class="font-semibold">{{ $activity->actor?->name ?? __('Sistem') }}</span>
+
+                                            @switch($activity->action)
+                                                @case('created')
+                                                    {{ __('membuat ticket ini') }}
+                                                    @break
+                                                @case('status_changed')
+                                                    {{ __('mengubah status') }}
+                                                    <span class="font-medium text-gray-600">{{ $activity->old_value }}</span>
+                                                    &rarr;
+                                                    <span class="font-medium text-gray-600">{{ $activity->new_value }}</span>
+                                                    @break
+                                                @case('assigned')
+                                                    @if ($activity->old_value)
+                                                        {{ __('memindahkan penugasan') }}
+                                                        <span class="font-medium text-gray-600">{{ $activity->old_value }}</span>
+                                                        &rarr;
+                                                        <span class="font-medium text-gray-600">{{ $activity->new_value }}</span>
+                                                    @else
+                                                        {{ __('menugaskan ticket ke') }}
+                                                        <span class="font-medium text-gray-600">{{ $activity->new_value }}</span>
+                                                    @endif
+                                                    @break
+                                                @case('claimed')
+                                                    {{ __('mengambil ticket ini') }}
+                                                    @break
+                                                @default
+                                                    {{ $activity->action }}
+                                            @endswitch
+                                        </p>
+                                    </div>
+                                    <span class="shrink-0 text-xs text-gray-500">
+                                        {{ $activity->created_at->diffForHumans() }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
             </div>
 

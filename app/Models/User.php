@@ -47,4 +47,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Comment::class);
     }
+
+    /**
+     * Audit log yang dilakukan user ini (pelaku aksi, bukan pemilik ticket).
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(TicketActivity::class);
+    }
 }
