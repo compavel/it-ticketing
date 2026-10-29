@@ -40,6 +40,13 @@ Gunakan Policy/Gate, jangan cek role manual di view/controller.
 - API / mobile app
 - Multi-tenant / multi-sekolah
 
+## Phase 2 (setelah MVP ticketing jalan)
+**Supply/Gudang request flow** — inspirasi pengalaman magang Tegar: persediaan di kantor teknisi habis, harus manual ke gudang (nunggu lama) atau keluar beli sendiri ke toko.
+- Role baru: `supply` (petugas gudang/inventaris)
+- Tabel `supply_requests`: `ticket_id` (nullable FK), description barang, quantity, status: `pending` → `approved` → `ready` → `picked_up` (+ `rejected`), `requested_by` (FK teknisi), `handled_by` (nullable FK petugas supply)
+- Alur: teknisi bikin request dari halaman detail ticket → petugas supply acc → status `ready` → teknisi ambil barang → `picked_up`
+- **JANGAN campur** inventory management penuh (stock opname, kartu stok, movement history) — itu project terpisah
+
 ## Database Design (initial)
 - `users` — tambah kolom `role` (user / technician / admin)
 - `categories` — name, slug
@@ -76,10 +83,12 @@ Semua relasi wajib pakai foreign key constraint + index di kolom yang sering dif
 - **Phase 3 (opsional, terakhir):** demo live via Railway atau Laravel Cloud. JANGAN pakai VPS manual — hindari ribet.
 
 ## Status
-- **Phase saat ini:** Fitur 1 selesai (database foundation) — siap Fitur 2
+- **Phase saat ini:** Fitur 2 selesai (ticket CRUD + authorization) — siap Fitur 3
 - **Done:** PHP 8.4.27 (`C:\php84`), Laravel 13.11 + Boost + Breeze, database MySQL `it_ticketing` (port **3307**), GitHub: https://github.com/compavel/it-ticketing
   - **Fitur 1 — database schema:** Enums (`UserRole`, `TicketStatus`, `TicketPriority` di root namespace `App\`), tabel `categories`/`tickets`/`comments` + kolom `role` di users, models + relationships + `#[Fillable]` attribute (Laravel 13 style), factories, `CategorySeeder` (7 kategori). 25 test pass.
-- **Next step:** Fitur 2 — ticket CRUD + authorization: `TicketPolicy`, `TicketController` (index/create/store/show), Form Request validation, views (list + filter, form buat ticket, detail), routes, feature tests. Minta approval plan sebelum implement.
+  - **Fitur 2 — ticket CRUD + authorization:** `TicketPolicy` (view: requester/assignee/non-User role; update: technician/admin), `StoreTicketRequest` (server-side validation), `TicketController` (index dengan filter status/kategori/prioritas/search + pagination, create, store, show), views (`tickets/index|create|show` + components `x-ticket-status`/`x-ticket-priority`), routes `Route::resource->only(index,create,store,show)` di group auth, UserFactory states `technician()`/`admin()`. 35 test pass.
+  - **Lesson learned:** factory HARUS set `role` eksplisit — kalau nggak, instance model nggak punya atribut role (default DB nggak kebaca balik), dan authorization check jadi bypass. Ditangkap test authorization.
+- **Next step:** Fitur 3 — update status ticket (flow open→in_progress→resolved→closed oleh teknisi) + komentar (publik vs internal). Atau Fitur 4: dashboard admin. Minta approval plan sebelum implement.
 
 ## Catatan untuk AI
 - Selalu tanya kalau requirement ambigu, jangan asumsi
