@@ -1,58 +1,203 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# IT Ticketing System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An internal helpdesk application for reporting and tracking IT disturbances — Wi-Fi outages, printer errors, broken CCTV, and more.
 
-## About Laravel
+> **Why this project?** During my IT support internship, incident reports arrived through WhatsApp threads. Issues got lost, ownership was unclear, and there was no record of what was fixed. This app turns that chaos into a structured workflow: every incident becomes a ticket with a category, a priority, an owner, and a visible status.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**Tech stack:** Laravel 13 · PHP 8.4 · MySQL · Blade · Tailwind CSS · Laravel Breeze · PHPUnit
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Features
 
-## Learning Laravel
+### Core (MVP)
+- **Authentication** — register & login via Laravel Breeze
+- **Role-based access control** — `user`, `technician`, `admin`, enforced through Laravel Policies (no manual role checks scattered through views)
+- **Ticket CRUD** — users create tickets; technicians/admins see all tickets
+- **Categories** — fixed reference data, seeded (Wi-Fi, CCTV, Printer, LAN, Laptop, Projector, Other)
+- **Priority levels** — `low`, `medium`, `high` with visual badges
+- **Status workflow** — `open → in_progress → resolved → closed`, where **closed is final** (enforced in `TicketPolicy`)
+- **Comments** — public comments for requester–technician communication, plus **internal notes visible only to staff**
+- **Search & filters** — by keyword (title/description), status, category, and priority, combined with pagination
+- **Dashboard** — status counts (single `GROUP BY` query) and an unassigned-ticket queue
+- **Ticket assignment** — technicians **claim** unassigned tickets; admins **assign/reassign** to any staff member
+- **Demo seed data** — ready-to-explore accounts and realistic sample tickets
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Security
+- Authorization centralized in `TicketPolicy` (view, create, update, viewInternal, viewAll, assign, claim)
+- Server-side validation via Form Requests on every write endpoint
+- Internal comments filtered server-side — requesters never see them, not even the comment count
+- Mass-assignment protection: sensitive fields (`status`, `assigned_to`, `user_id`) are intentionally **not** fillable and are set explicitly
+- CSRF protection on all forms, parameterized queries via Eloquent, `enum`-validated status values
+- No hardcoded credentials — everything via `.env`
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Screenshots
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| | |
+|---|---|
+| ![Login](docs/screenshots/01-login.jpg) | ![Dashboard](docs/screenshots/02-dashboard-admin.jpg) |
+| **Login** | **Dashboard (admin)** — status stats + unassigned queue |
+| ![Ticket list](docs/screenshots/03-tickets-index.jpg) | ![Ticket detail (staff)](docs/screenshots/04-ticket-detail-staff.jpg) |
+| **Ticket list** — search & filters | **Ticket detail (staff)** — status form, assignment, internal notes |
+| ![Create ticket](docs/screenshots/05-ticket-create.jpg) | ![Ticket detail (user)](docs/screenshots/06-ticket-detail-user.jpg) |
+| **Create ticket** | **Ticket detail (user)** — internal notes hidden |
 
-## Agentic Development
+## Roles
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+| Capability | User | Technician | Admin |
+|---|:-:|:-:|:-:|
+| Create ticket, comment publicly | ✅ | ✅ | ✅ |
+| View own tickets | ✅ | — | — |
+| View all tickets | — | ✅ | ✅ |
+| Update status (until closed) | — | ✅ | ✅ |
+| Claim unassigned ticket | — | ✅ | ✅ |
+| Assign / reassign ticket | — | — | ✅ |
+| View & write internal notes | — | ✅ | ✅ |
+| Dashboard stats & queue | own tickets | ✅ | ✅ |
+
+## Tech Stack & Versions
+
+| Component | Version |
+|---|---|
+| Laravel | 13.39.0 |
+| PHP | 8.4 |
+| MySQL | 8.x (XAMPP) — tests run on SQLite in-memory |
+| Laravel Breeze | 2.4.2 (Blade stack) |
+| Laravel Boost | 2.10.4 (AI coding guidelines) |
+| Tailwind CSS | v4 (via Vite) |
+| PHPUnit | 12.x |
+
+## Installation
+
+**Prerequisites:** PHP 8.4+, Composer, Node.js, MySQL.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/compavel/it-ticketing.git
+cd it-ticketing
+composer install
+npm install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Environment configuration
 
-## Contributing
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Set your database credentials in `.env`:
 
-## Code of Conduct
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=it_ticketing
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+> On my setup MySQL runs on port **3307** (XAMPP custom port) — adjust `DB_PORT` to match yours.
 
-## Security Vulnerabilities
+### Database setup
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan migrate
+php artisan db:seed   # categories + demo tickets/comments
+```
 
-## License
+### Build assets & run
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+npm run build         # or: npm run dev (watch mode)
+php artisan serve     # http://127.0.0.1:8000
+```
+
+## Demo Credentials
+
+All accounts use password: **`password`**
+
+| Role | Email |
+|---|---|
+| User (requester) | `test@example.com` |
+| Technician | `technician@example.com` |
+| User (other tickets) | `sari@example.com` |
+| Admin | `admin@example.com` |
+
+## Testing
+
+```bash
+php artisan test              # full suite
+php artisan test --compact    # compact output
+```
+
+**68 tests, 181 assertions** — covering authentication, CRUD, authorization boundaries for all three roles, validation, status workflow rules (including closed-is-final), comment visibility (internal notes hidden from requesters, counts not leaked), assignment/claim rules, and dashboard scoping.
+
+Tests run against in-memory SQLite, so no database server is needed.
+
+Code style:
+
+```bash
+vendor/bin/pint               # format everything
+vendor/bin/pint --dirty       # format changed files only
+```
+
+## Architecture Overview
+
+```
+app/
+├── Controllers/
+│   ├── DashboardController.php      # status stats + unassigned queue (invokable)
+│   ├── TicketController.php         # index (filter/search), create, store, show, updateStatus, assign, claim
+│   └── CommentController.php        # public/internal comments
+├── Http/Requests/
+│   ├── StoreTicketRequest.php       # validation + authz for ticket creation
+│   ├── UpdateStatusRequest.php      # enum-validated status transitions
+│   ├── StoreCommentRequest.php      # comment rules; internal flag forced for users
+│   └── AssignTicketRequest.php      # target must be technician/admin
+├── Models/                          # User, Ticket, Category, Comment
+├── Policies/
+│   └── TicketPolicy.php             # ALL authorization rules live here
+└── Enums (App\)                     # UserRole, TicketStatus, TicketPriority
+```
+
+**Key design decisions:**
+
+1. **Policy-first authorization.** Every rule ("who can do what") is in `TicketPolicy`. Views use `@can`, controllers use `Gate::authorize` — no duplicated role logic.
+2. **Closed = final.** Enforced once in `TicketPolicy::update()`. Reopening requires a new ticket, mirroring real helpdesk behavior.
+3. **Internal comments filtered server-side.** `TicketController::show()` removes internal notes before rendering when the viewer lacks permission — so both the list and the count stay correct.
+4. **Deliberate mass-assignment boundaries.** `status`, `assigned_to`, and `user_id` are not fillable; they are set explicitly or via the owning relation. This prevents privilege escalation even if a future developer passes untrusted input to `update()`.
+5. **Assign vs. claim are separate endpoints** with separate rules: claim = staff takes an unassigned ticket; assign = admin chooses the owner.
+
+## Database Design
+
+```
+users        → role (user | technician | admin)
+categories   → name, slug
+tickets      → title, description, category_id (FK),
+               priority (enum), status (enum),
+               user_id (FK requester), assigned_to (FK, nullable)
+comments     → ticket_id (FK), user_id (FK author),
+               body, is_internal (bool)
+```
+
+All foreign keys have proper constraints and indexes on frequently filtered/joined columns.
+
+## Deployment
+
+Currently running locally in development. Planned: public GitHub repo (Phase 2) with a hosted demo via Railway or Laravel Cloud (Phase 3).
+
+## Future Improvements
+
+- **Supply/gudang request flow** (Phase 2) — technicians request stock items from the warehouse directly from a ticket
+- Email/realtime notifications on status changes and assignments
+- File attachments on tickets
+- SLA timers and escalation
+- Ticket activity/audit log
+- Dashboard charts for trends over time
+
+## Author
+
+**Tegar Raditya Permana Putra** — aspiring IT Support / Web Developer
+GitHub: [github.com/compavel](https://github.com/compavel)
+
+Inspired by real IT support workflows from my internship experience (Wi-Fi maintenance, CCTV, and computer lab management).
