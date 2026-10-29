@@ -76,9 +76,9 @@ Semua relasi wajib pakai foreign key constraint + index di kolom yang sering dif
 - **Phase 3 (opsional, terakhir):** demo live via Railway atau Laravel Cloud. JANGAN pakai VPS manual — hindari ribet.
 
 ## Status
-- **Phase saat ini:** Environment setup hampir selesai
-- **Done:** PHP 8.4.27 (side-by-side), Laravel 13.11 + framework v13.39.0 terinstall, Laravel Boost v2.10.4 terinstall, APP_KEY ke-generate, base migration (users/cache/jobs) jalan via SQLite
-- **Next step:** Install Breeze → setup database MySQL → migration ulang ke MySQL → `git init` + initial commit
+- **Phase saat ini:** Setup selesai — siap mulai bikin fitur MVP
+- **Done:** PHP 8.4.27 (side-by-side di `C:\php84`), Laravel 13.11 + framework v13.39.0, Laravel Boost v2.10.4, Laravel Breeze v2.4.2 (blade stack), Tailwind ke-build, database MySQL `it_ticketing` (port **3307**, bukan 3306) ke-migrate, 25 test bawaan pass, git init + initial commit (`main`)
+- **Next step:** Push ke GitHub (remote `origin`) → mulai fitur 1: migration `role` di users + tabel `categories`, `tickets`, `comments` sesuai database design
 
 ## Catatan untuk AI
 - Selalu tanya kalau requirement ambigu, jangan asumsi
