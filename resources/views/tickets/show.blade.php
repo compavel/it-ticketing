@@ -41,6 +41,41 @@
                             <dd class="mt-1 text-sm text-gray-900">
                                 {{ $ticket->assignee?->name ?? __('Belum ditugaskan') }}
                             </dd>
+
+                            {{-- Aksi penugasan --}}
+                            @if ($ticket->assignee === null)
+                                @can('claim', $ticket)
+                                    <form method="POST" action="{{ route('tickets.claim', $ticket) }}" class="mt-2">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit"
+                                                class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500">
+                                            {{ __('Ambil Ticket Ini') }}
+                                        </button>
+                                    </form>
+                                @endcan
+                            @endif
+
+                            @can('assign', $ticket)
+                                <form method="POST" action="{{ route('tickets.assign', $ticket) }}"
+                                      class="mt-2 flex items-center gap-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <label for="assign-technician" class="sr-only">{{ __('Pilih teknisi') }}</label>
+                                    <select name="technician_id" id="assign-technician" required
+                                            class="rounded-md border-gray-300 text-xs shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        @foreach ($technicians as $technician)
+                                            <option value="{{ $technician->id }}" @selected($ticket->assigned_to === $technician->id)>
+                                                {{ $technician->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit"
+                                            class="inline-flex items-center rounded-md bg-gray-800 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700">
+                                        {{ $ticket->assignee ? __('Ganti') : __('Tugaskan') }}
+                                    </button>
+                                </form>
+                            @endcan
                         </div>
                         @if ($ticket->updated_at != $ticket->created_at)
                             <div>

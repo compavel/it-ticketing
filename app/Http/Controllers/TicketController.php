@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AssignTicketRequest;
 use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateStatusRequest;
 use App\Models\Category;
 use App\Models\Ticket;
+use App\Models\User;
 use App\TicketPriority;
 use App\TicketStatus;
 use App\UserRole;
@@ -106,6 +108,9 @@ class TicketController extends Controller
 
         return view('tickets.show', [
             'ticket' => $ticket,
+            'technicians' => $request->user()->can('assign', $ticket)
+                ? User::where('role', '!=', UserRole::User->value)->orderBy('name')->get()
+                : collect(),
         ]);
     }
 
@@ -127,5 +132,40 @@ class TicketController extends Controller
         return redirect()
             ->route('tickets.show', $ticket)
             ->with('success', 'Status ticket diperbarui.');
+    }
+
+    /**
+     * Assign the ticket to a chosen technician (admin only).
+     *
+     * Authorization di TicketPolicy::assign(). Target teknisi divalidasi
+     * AssignTicketRequest (harus user dengan role technician/admin).
+     * `assigned_to` tidak di-fillable — di-set eksplisit.
+     */
+    public function assign(AssignTicketRequest $request, Ticket $ticket)
+    {
+        $ticket->assigned_to = $request->validated('technician_id');
+        $ticket->save();
+
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket ditugaskan.');
+    }
+
+    /**
+     * Claim the unassigned ticket for the current technician.
+     *
+     * Authorization di TicketPolicy::claim() (hanya ticket yang belum
+     * ditugaskan). `assigned_to` di-set eksplisit dari session.
+     */
+    public function claim(Request $request, Ticket $ticket)
+    {
+        Gate::authorize('claim', $ticket);
+
+        $ticket->assigned_to = $request->user()->id;
+        $ticket->save();
+
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket berhasil diambil.');
     }
 }

@@ -36,6 +36,11 @@ class DatabaseSeeder extends Seeder
             'email' => 'sari@example.com',
         ]);
 
+        User::factory()->admin()->create([
+            'name' => 'Andi Admin',
+            'email' => 'admin@example.com',
+        ]);
+
         $wifi = Category::where('slug', 'wifi')->first();
         $cctv = Category::where('slug', 'cctv')->first();
         $printer = Category::where('slug', 'printer')->first();
