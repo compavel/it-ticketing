@@ -14,7 +14,7 @@ An internal helpdesk application for reporting and tracking IT disturbances — 
 - **Authentication** — register & login via Laravel Breeze
 - **Role-based access control** — `user`, `technician`, `admin`, enforced through Laravel Policies (no manual role checks scattered through views)
 - **Ticket CRUD** — users create tickets; technicians/admins see all tickets
-- **Categories** — fixed reference data, seeded (Wi-Fi, CCTV, Printer, LAN, Laptop, Projector, Other)
+- **Categories** — admin CRUD (create/edit/delete), auto-generated unique slug, delete blocked when category still has tickets; reference data seeded (Wi-Fi, CCTV, Printer, LAN, Laptop, Projector, Other)
 - **Priority levels** — `low`, `medium`, `high` with visual badges
 - **Status workflow** — `open → in_progress → resolved → closed`, where **closed is final** (enforced in `TicketPolicy`)
 - **Comments** — public comments for requester–technician communication, plus **internal notes visible only to staff**
@@ -41,6 +41,8 @@ An internal helpdesk application for reporting and tracking IT disturbances — 
 | **Ticket list** — search & filters | **Ticket detail (staff)** — status form, assignment, internal notes |
 | ![Create ticket](docs/screenshots/05-ticket-create.jpg) | ![Ticket detail (user)](docs/screenshots/06-ticket-detail-user.jpg) |
 | **Create ticket** | **Ticket detail (user)** — internal notes hidden |
+| ![Category management](docs/screenshots/07-categories-admin.jpg) | |
+| **Category management (admin)** | |
 
 ## Roles
 
@@ -130,7 +132,7 @@ php artisan test              # full suite
 php artisan test --compact    # compact output
 ```
 
-**68 tests, 181 assertions** — covering authentication, CRUD, authorization boundaries for all three roles, validation, status workflow rules (including closed-is-final), comment visibility (internal notes hidden from requesters, counts not leaked), assignment/claim rules, and dashboard scoping.
+**82 tests, 217 assertions** — covering authentication, CRUD, authorization boundaries for all three roles, validation, status workflow rules (including closed-is-final), comment visibility (internal notes hidden from requesters, counts not leaked), assignment/claim rules, category management (admin-only, unique names, delete guarded against ticket usage), and dashboard scoping.
 
 Tests run against in-memory SQLite, so no database server is needed.
 
@@ -148,6 +150,7 @@ app/
 ├── Controllers/
 │   ├── DashboardController.php      # status stats + unassigned queue (invokable)
 │   ├── TicketController.php         # index (filter/search), create, store, show, updateStatus, assign, claim
+│   ├── CategoryController.php       # admin CRUD; delete guarded by ticket usage
 │   └── CommentController.php        # public/internal comments
 ├── Http/Requests/
 │   ├── StoreTicketRequest.php       # validation + authz for ticket creation

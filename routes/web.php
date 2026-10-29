@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
@@ -33,6 +34,9 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('/tickets/{ticket}/claim', [TicketController::class, 'claim'])
         ->name('tickets.claim');
+
+    Route::resource('categories', CategoryController::class)
+        ->except(['show']);
 });
 
 require __DIR__.'/auth.php';
