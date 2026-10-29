@@ -77,8 +77,8 @@ Semua relasi wajib pakai foreign key constraint + index di kolom yang sering dif
 
 ## Status
 - **Phase saat ini:** Setup selesai — siap mulai bikin fitur MVP
-- **Done:** PHP 8.4.27 (side-by-side di `C:\php84`), Laravel 13.11 + framework v13.39.0, Laravel Boost v2.10.4, Laravel Breeze v2.4.2 (blade stack), Tailwind ke-build, database MySQL `it_ticketing` (port **3307**, bukan 3306) ke-migrate, 25 test bawaan pass, git init + initial commit (`main`)
-- **Next step:** Push ke GitHub (remote `origin`) → mulai fitur 1: migration `role` di users + tabel `categories`, `tickets`, `comments` sesuai database design
+- **Done:** PHP 8.4.27 (side-by-side di `C:\php84`), Laravel 13.11 + framework v13.39.0, Laravel Boost v2.10.4, Laravel Breeze v2.4.2 (blade stack), Tailwind ke-build, database MySQL `it_ticketing` (port **3307**, bukan 3306) ke-migrate, 25 test bawaan pass, GitHub repo: https://github.com/compavel/it-ticketing (branch `main`, remote `origin`)
+- **Next step:** Mulai fitur 1: migration `role` di users + tabel `categories`, `tickets`, `comments` sesuai database design
 
 ## Catatan untuk AI
 - Selalu tanya kalau requirement ambigu, jangan asumsi
