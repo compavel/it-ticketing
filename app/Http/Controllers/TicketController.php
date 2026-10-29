@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTicketRequest;
+use App\Http\Requests\UpdateStatusRequest;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\TicketPriority;
@@ -73,10 +74,12 @@ class TicketController extends Controller
      */
     public function store(StoreTicketRequest $request)
     {
-        $ticket = $request->user()->requestedTickets()->create([
-            ...$request->validated(),
-            'status' => TicketStatus::Open,
-        ]);
+        // Ticket dibuat via relasi requester supaya user_id diisi otomatis dari
+        // session (bukan mass assignment). `status` tidak di-fillable, jadi
+        // di-set eksplisit di sini.
+        $ticket = $request->user()->requestedTickets()->make($request->validated());
+        $ticket->status = TicketStatus::Open;
+        $ticket->save();
 
         return redirect()
             ->route('tickets.show', $ticket)
@@ -90,8 +93,39 @@ class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
+        $ticket->load(['category', 'requester', 'assignee', 'comments.author']);
+
+        // Komentar internal hanya untuk technician/admin. Di-filter di sini
+        // (bukan di view) supaya count & tampilan konsisten.
+        if (! $request->user()->can('viewInternal', $ticket)) {
+            $ticket->setRelation(
+                'comments',
+                $ticket->comments->where('is_internal', false)->values(),
+            );
+        }
+
         return view('tickets.show', [
-            'ticket' => $ticket->load(['category', 'requester', 'assignee', 'comments.author']),
+            'ticket' => $ticket,
         ]);
+    }
+
+    /**
+     * Update the ticket's status.
+     *
+     * Authorization (technician/admin & bukan ticket closed) ditangani oleh
+     * TicketPolicy::update() — meliputi aturan "closed = final".
+     */
+    public function updateStatus(UpdateStatusRequest $request, Ticket $ticket)
+    {
+        Gate::authorize('update', $ticket);
+
+        // status sengaja TIDAK masuk $fillable (field sensitif): di-set
+        // eksplisit di sini, bukan lewat mass assignment.
+        $ticket->status = $request->validated('status');
+        $ticket->save();
+
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Status ticket diperbarui.');
     }
 }

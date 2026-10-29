@@ -84,12 +84,13 @@ Semua relasi wajib pakai foreign key constraint + index di kolom yang sering dif
 - **Phase 3 (opsional, terakhir):** demo live via Railway atau Laravel Cloud. JANGAN pakai VPS manual — hindari ribet.
 
 ## Status
-- **Phase saat ini:** Fitur 2 selesai (ticket CRUD + authorization) — siap Fitur 3
+- **Phase saat ini:** Fitur 3 selesai (update status + komentar) — siap Fitur 4
 - **Done:** PHP 8.4.27 (`C:\php84`), Laravel 13.11 + Boost + Breeze, database MySQL `it_ticketing` (port **3307**), GitHub: https://github.com/compavel/it-ticketing
   - **Fitur 1 — database schema:** Enums (`UserRole`, `TicketStatus`, `TicketPriority` di root namespace `App\`), tabel `categories`/`tickets`/`comments` + kolom `role` di users, models + relationships + `#[Fillable]` attribute (Laravel 13 style), factories, `CategorySeeder` (7 kategori). 25 test pass.
   - **Fitur 2 — ticket CRUD + authorization:** `TicketPolicy` (view: requester/assignee/non-User role; update: technician/admin), `StoreTicketRequest` (server-side validation), `TicketController` (index dengan filter status/kategori/prioritas/search + pagination, create, store, show), views (`tickets/index|create|show` + components `x-ticket-status`/`x-ticket-priority`), routes `Route::resource->only(index,create,store,show)` di group auth, UserFactory states `technician()`/`admin()`. 35 test pass. Root `/` redirect ke `tickets.index`.
-  - **Lesson learned:** (1) factory HARUS set `role` eksplisit — kalau nggak, instance model nggak punya atribut role (default DB nggak kebaca balik), dan authorization check jadi bypass. Ditangkap test authorization. (2) Setelah tambah view Tailwind baru, wajib `npm run build` — kalau nggak, class baru nggak ada di CSS dan layout rusak (SVG kegedean). Ditangkap via screenshot di browser.
-- **Next step:** Fitur 3 — update status ticket (flow open→in_progress→resolved→closed oleh teknisi) + komentar (publik vs internal). Atau Fitur 4: dashboard admin. Minta approval plan sebelum implement.
+  - **Fitur 3 — update status + komentar:** `PATCH /tickets/{id}/status` (hanya teknisi/admin, aturan **closed = final** di `TicketPolicy::update`), `POST /tickets/{id}/comments` (`CommentController`), komentar internal disembunyikan dari requester via filter di `TicketController::show` + policy `viewInternal`, views: form status + list komentar (publik putih / internal kuning) + checkbox internal. Seeder demo: 4 ticket, 3 akun (`test@example.com`, `technician@example.com`, `sari@example.com`, semua password `password`). 52 test pass, live-tested di browser.
+  - **Lesson learned:** (1) factory HARUS set `role` eksplisit — kalau nggak, instance model nggak punya atribut role, dan authorization check jadi bypass. (2) Setelah tambah view Tailwind baru, wajib `npm run build`. (3) **Mass assignment FK** — foreign key cuma ke-set otomatis kalau lewat sisi relasi (`$user->comments()->create()` set `user_id`); field lain harus masuk `$fillable` atau di-set eksplisit property. `user_id` Comment & `status` Ticket sengaja TIDAK di-fillable (dari session / di-set eksplisit). Bug (1) & (3) ditangkap test.
+- **Next step:** Fitur 4 — dashboard admin (total ticket per status, ticket belum ditugaskan), lalu assign ticket ke teknisi. Minta approval plan sebelum implement.
 
 ## Catatan untuk AI
 - Selalu tanya kalau requirement ambigu, jangan asumsi

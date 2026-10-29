@@ -8,7 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['body', 'is_internal'])]
+/**
+ * Catatan mass assignment:
+ * - `body` & `is_internal` — input user, divalidasi Form Request.
+ * - `ticket_id` — dari route yang sudah lolos TicketPolicy::view().
+ * - `user_id` SENGAJA tidak di-fillable: penulis komentar harus berasal dari
+ *   session, selalu diisi lewat relasi `$user->comments()->create(...)`.
+ */
+#[Fillable(['ticket_id', 'body', 'is_internal'])]
 class Comment extends Model
 {
     /** @use HasFactory<CommentFactory> */

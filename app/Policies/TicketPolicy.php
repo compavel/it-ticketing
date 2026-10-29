@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Ticket;
 use App\Models\User;
+use App\TicketStatus;
 use App\UserRole;
 
 class TicketPolicy
@@ -38,10 +39,24 @@ class TicketPolicy
     /**
      * Determine whether the user can update the ticket.
      *
-     * Hanya technician dan admin yang boleh update ticket (mis. ganti status,
-     * assign teknisi). Role User tidak boleh.
+     * Hanya technician dan admin yang boleh update ticket (mis. ganti status).
+     * Ticket yang sudah `closed` bersifat final: statusnya tidak bisa diubah
+     * lagi — kalau ternyata masih ada masalah baru, buat ticket baru.
      */
     public function update(User $user, Ticket $ticket): bool
+    {
+        return $user->role !== UserRole::User
+            && $ticket->status !== TicketStatus::Closed;
+    }
+
+    /**
+     * Determine whether the user can see internal (technician-only) notes.
+     *
+     * Dipakai di view untuk menyembunyikan komentar internal dari requester.
+     * Berbeda dengan update(): tidak peduli ticket closed atau tidak, teknisi
+     * tetap boleh membaca catatan internal untuk riwayat.
+     */
+    public function viewInternal(User $user, Ticket $ticket): bool
     {
         return $user->role !== UserRole::User;
     }
